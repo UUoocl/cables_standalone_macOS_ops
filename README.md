@@ -246,27 +246,62 @@ System-wide input monitoring and synthetic OS event dispatching using Apple Core
 
 ### Removing macOS Gatekeeper Quarantine on Downloaded Binaries
 
-When downloading or extracting this repository (or `.zip` archives) from GitHub via a web browser (Safari, Chrome, etc.), macOS automatically applies the `com.apple.quarantine` extended attribute to all files. This prevents macOS Gatekeeper from loading third-party native Node-API addons (`.node`) and embedded dynamic frameworks (`Syphon.framework`), leading to errors like `Binary Not Found`, `Addon Load Error`, or silent `dlopen` failures.
+When downloading or extracting this repository (or `.zip` archives) from GitHub via a web browser (Safari, Chrome, etc.), macOS automatically applies the `com.apple.quarantine` extended attribute to all files. This causes macOS Gatekeeper to block third-party native Node-API addons (`.node`) and embedded dynamic frameworks (`Syphon.framework`), leading to `Binary Not Found`, `Addon Load Error`, or silent `dlopen` failures.
 
-#### Step 1: Strip the Quarantine Attribute
-Open macOS **Terminal** and run the recursive `xattr -cr` command on the operators folder:
-```bash
-# Clear quarantine attributes from all files in the ops directory:
-xattr -cr path/to/your_patch/ops/
-```
+You can unblock them either via the **macOS System Settings GUI** or via **Terminal**:
 
-> [!TIP]
-> You can also drag the `ops` folder directly from Finder into Terminal after typing `xattr -cr ` to automatically fill in the full path.
+---
 
-#### Step 2: Ensure Executable Permissions
-Ensure all compiled binaries and dynamic frameworks have executable permissions:
-```bash
-# Make all .node addons and framework binaries executable:
-chmod -R +x path/to/your_patch/ops/
-```
+#### Method 1: Using macOS System Settings GUI ("Allow Anyway")
 
-#### Step 3: Fully Restart Cables Standalone
-macOS caches dynamic linker (`dyld`) framework resolutions and Node module lookups. **Quit Cables Standalone completely (`Cmd + Q`) and relaunch it** for the cleared permissions and newly placed binaries to take effect.
+1. Open **System Settings** on your Mac.
+2. Navigate to **Privacy & Security** in the sidebar.
+3. Scroll down to the **Security** section.
+4. When a binary or framework is blocked, macOS will display a prompt indicating that the file was blocked:
+   * For `Syphon.framework`:
+     ```
+     "Syphon.framework" was blocked to protect your Mac.
+     ```
+     Click the **Allow Anyway** button next to the notification:
+     
+     <p align="center">
+       <img src="assets/gatekeeper_syphon_framework_allow.png" alt="Allow Syphon.framework in System Settings" width="560">
+     </p>
+
+   * For the native `.node` addon (e.g., `syphon_texture_server.node`):
+     ```
+     "syphon_texture_server.node" was blocked to protect your Mac.
+     ```
+     Click the **Allow Anyway** button next to the notification:
+     
+     <p align="center">
+       <img src="assets/gatekeeper_syphon_node_allow.png" alt="Allow syphon_texture_server.node in System Settings" width="560">
+     </p>
+
+5. Enter your Mac administrator password or use Touch ID when prompted.
+6. Re-open or reload Cables Standalone (`Cmd + R`) to complete the authorization.
+
+---
+
+#### Method 2: Batch Unblocking via Terminal (`xattr -cr`)
+
+If you want to unblock all operators and frameworks at once in a single command:
+
+1. Open macOS **Terminal**.
+2. Run `xattr -cr` recursively on your patch's `ops` folder:
+   ```bash
+   # Clear quarantine attributes from all files in the ops directory:
+   xattr -cr path/to/your_patch/ops/
+   ```
+   > [!TIP]
+   > You can type `xattr -cr ` (with a trailing space) into Terminal and drag the `ops` folder directly from Finder into the Terminal window to insert its path.
+
+3. Ensure all native binaries have executable permissions:
+   ```bash
+   chmod -R +x path/to/your_patch/ops/
+   ```
+
+4. **Fully Quit and Restart Cables Standalone (`Cmd + Q`)** to reload the dynamic linker (`dyld`) cache and initialize the addons cleanly.
 
 ---
 
