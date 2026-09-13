@@ -229,9 +229,10 @@ System-wide input monitoring and synthetic OS event dispatching using Apple Core
 
 ## Native Architecture Highlights
 
-1. **Precompiled Apple Silicon (`arm64`) Binaries**:
-   - Each op directory includes its compiled native `.node` binary targeting Apple Silicon (`arm64`).
-   - Self-contained with embedded framework references (`@rpath/Syphon.framework`) for drag-and-drop deployment.
+1. **Precompiled Universal & Apple Silicon Binaries**:
+   - Each op directory includes its precompiled native `.node` binary.
+   - Syphon operators (`SyphonIn`, `SyphonOutTexture`, `SyphonOutPatchCanvas`) are built as **Universal Binaries (`arm64` + `x86_64`)**, executing natively at 100% full speed on both Apple Silicon (M1/M2/M3/M4) and Intel Macs.
+   - Self-contained with embedded framework references (`@rpath/Syphon.framework`) for plug-and-play drag-and-drop deployment.
 2. **Unified Memory Architecture (UMA)**:
    - Memory buffers are mapped directly into Apple Silicon unified memory without redundant CPU-to-GPU copying.
 3. **Garbage Collection (GC) Free Ingestion**:
@@ -242,6 +243,44 @@ System-wide input monitoring and synthetic OS event dispatching using Apple Core
 ---
 
 ## Troubleshooting
+
+### Removing macOS Gatekeeper Quarantine on Downloaded Binaries
+
+When downloading or extracting this repository (or `.zip` archives) from GitHub via a web browser (Safari, Chrome, etc.), macOS automatically applies the `com.apple.quarantine` extended attribute to all files. This prevents macOS Gatekeeper from loading third-party native Node-API addons (`.node`) and embedded dynamic frameworks (`Syphon.framework`), leading to errors like `Binary Not Found`, `Addon Load Error`, or silent `dlopen` failures.
+
+#### Step 1: Strip the Quarantine Attribute
+Open macOS **Terminal** and run the recursive `xattr -cr` command on the operators folder:
+```bash
+# Clear quarantine attributes from all files in the ops directory:
+xattr -cr path/to/your_patch/ops/
+```
+
+> [!TIP]
+> You can also drag the `ops` folder directly from Finder into Terminal after typing `xattr -cr ` to automatically fill in the full path.
+
+#### Step 2: Ensure Executable Permissions
+Ensure all compiled binaries and dynamic frameworks have executable permissions:
+```bash
+# Make all .node addons and framework binaries executable:
+chmod -R +x path/to/your_patch/ops/
+```
+
+#### Step 3: Fully Restart Cables Standalone
+macOS caches dynamic linker (`dyld`) framework resolutions and Node module lookups. **Quit Cables Standalone completely (`Cmd + Q`) and relaunch it** for the cleared permissions and newly placed binaries to take effect.
+
+---
+
+### Fixing Op Status: "Binary Not Found" or "Addon Load Error"
+
+* **"Binary Not Found"**:
+  - Verify that the native addon binary exists directly in the operator folder (for example, `ops/Ops.Extension.Standalone.MacOs.Syphon.SyphonOutTexture/syphon_texture_server.node`).
+  - If you cloned the repository, ensure that `.node` files were checked out and not excluded.
+  - Check the Cables developer console (`Cmd + Alt + I`) for the exact candidate paths Cables evaluated.
+* **"Addon Load Error"**:
+  - The binary was found on disk, but macOS dynamic linker failed to load it.
+  - This typically indicates either a Gatekeeper quarantine flag (see [Removing macOS Gatekeeper Quarantine](#removing-macos-gatekeeper-quarantine-on-downloaded-binaries) above) or missing `Syphon.framework` in the op's `Frameworks/` subfolder.
+
+---
 
 ### Syphon stream not visible in OBS / Resolume
 - Verify that `Active` is set to `true` on the Syphon operator.

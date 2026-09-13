@@ -64,20 +64,27 @@ function loadNativeAddon() {
     }
 
     try {
-        const addonRelPath = "ops/Ops.Extension.Standalone.MacOs.Syphon.SyphonOutTexture/build/Release/syphon_texture_server.node";
-        const candidatePaths = [];
+        const addonRelPath = "ops/Ops.Extension.Standalone.MacOs.Syphon.SyphonOutTexture/syphon_texture_server.node";
+        const candidatePaths = [
+            "ops/Ops.Extension.Standalone.MacOs.Syphon.SyphonOutTexture/syphon_texture_server.node",
+            "ops/Ops.Extension.Standalone.MacOs.Syphon.SyphonOutTexture/build/Release/syphon_texture_server.node"
+        ];
 
         if (op.patch && op.patch.config && op.patch.config.prefixAssetPath) {
             candidatePaths.push(path.join(op.patch.config.prefixAssetPath, addonRelPath));
+            candidatePaths.push(path.join(op.patch.config.prefixAssetPath, "ops/Ops.Extension.Standalone.MacOs.Syphon.SyphonOutTexture/build/Release/syphon_texture_server.node"));
         }
 
         if (typeof __dirname !== "undefined" && __dirname) {
+            candidatePaths.push(path.join(__dirname, "syphon_texture_server.node"));
             candidatePaths.push(path.join(__dirname, "build/Release/syphon_texture_server.node"));
+            candidatePaths.push(path.join(__dirname, "ops/Ops.Extension.Standalone.MacOs.Syphon.SyphonOutTexture/syphon_texture_server.node"));
             candidatePaths.push(path.join(__dirname, "ops/Ops.Extension.Standalone.MacOs.Syphon.SyphonOutTexture/build/Release/syphon_texture_server.node"));
         }
 
         if (typeof process !== "undefined" && typeof process.cwd === "function") {
             candidatePaths.push(path.join(process.cwd(), addonRelPath));
+            candidatePaths.push(path.join(process.cwd(), "ops/Ops.Extension.Standalone.MacOs.Syphon.SyphonOutTexture/build/Release/syphon_texture_server.node"));
         }
 
         candidatePaths.push(path.resolve(addonRelPath));
@@ -95,7 +102,7 @@ function loadNativeAddon() {
             }
         }
 
-        op.logWarn("[SyphonOutTexture] Native addon binary not found.");
+        op.logWarn("[SyphonOutTexture] Native addon binary not found. Checked paths: " + candidatePaths.join(", "));
         outStatus.set("Binary Not Found");
         return null;
     } catch (e) {

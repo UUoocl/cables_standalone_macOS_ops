@@ -16,11 +16,14 @@
       "cflags!": [ "-fno-exceptions" ],
       "cflags_cc!": [ "-fno-exceptions" ],
       "xcode_settings": {
+        "ARCHS": [ "arm64", "x86_64" ],
         "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
         "CLANG_CXX_LIBRARY": "libc++",
         "MACOSX_DEPLOYMENT_TARGET": "13.0",
         "CLANG_ENABLE_OBJC_ARC": "YES",
         "OTHER_CPLUSPLUSFLAGS": [
+          "-arch", "arm64",
+          "-arch", "x86_64",
           "-std=c++17",
           "-stdlib=libc++",
           "-ObjC++",
@@ -28,10 +31,14 @@
           "-F<(module_root_dir)/Frameworks"
         ],
         "OTHER_CFLAGS": [
+          "-arch", "arm64",
+          "-arch", "x86_64",
           "-fobjc-arc",
           "-F<(module_root_dir)/Frameworks"
         ],
         "OTHER_LDFLAGS": [
+          "-arch", "arm64",
+          "-arch", "x86_64",
           "-framework Cocoa",
           "-framework AppKit",
           "-framework Metal",

@@ -248,9 +248,20 @@ private:
 
         IOSurfaceLock(surface, kIOSurfaceLockAvoidSync, nullptr);
         void* dst = IOSurfaceGetBaseAddress(surface);
-        size_t allocSize = IOSurfaceGetAllocSize(surface);
+        size_t bytesPerRow = IOSurfaceGetBytesPerRow(surface);
+        size_t srcRowBytes = surfaceWidth * 4;
+
         if (dst) {
-            memcpy(dst, src, std::min(size, allocSize));
+            if (bytesPerRow == srcRowBytes) {
+                memcpy(dst, src, std::min(size, surfaceHeight * bytesPerRow));
+            } else {
+                uint8_t* dstBytes = (uint8_t*)dst;
+                const uint8_t* srcBytes = src;
+                size_t copyBytes = std::min(srcRowBytes, bytesPerRow);
+                for (size_t y = 0; y < surfaceHeight; y++) {
+                    memcpy(dstBytes + (y * bytesPerRow), srcBytes + (y * srcRowBytes), copyBytes);
+                }
+            }
         }
         IOSurfaceUnlock(surface, 0, nullptr);
 

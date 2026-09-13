@@ -13,10 +13,13 @@
 #import <Syphon/Syphon.h>
 #import <mutex>
 #import <chrono>
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
 #include <arm_neon.h>
+#endif
 
 static inline void SwizzleBGRAtoRGBA(uint8_t* dst, const uint8_t* src, size_t numPixels) {
     size_t i = 0;
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
     // Process 16 pixels (64 bytes) per iteration using ARM NEON vector instructions
     for (; i + 16 <= numPixels; i += 16) {
         uint8x16x4_t bgra = vld4q_u8(src + i * 4);
@@ -27,7 +30,8 @@ static inline void SwizzleBGRAtoRGBA(uint8_t* dst, const uint8_t* src, size_t nu
         rgba.val[3] = bgra.val[3]; // A = A
         vst4q_u8(dst + i * 4, rgba);
     }
-    // Handle remaining pixels
+#endif
+    // Handle remaining pixels (or all pixels on x86_64)
     for (; i < numPixels; i++) {
         uint8_t b = src[i * 4 + 0];
         uint8_t g = src[i * 4 + 1];
@@ -296,11 +300,27 @@ private:
                 }
 
                 if (src && dst) {
-                    if (swapRb) {
-                        size_t numPixels = std::min(w * h, dstSize / 4);
-                        SwizzleBGRAtoRGBA(dst, (const uint8_t*)src, numPixels);
+                    size_t bytesPerRow = IOSurfaceGetBytesPerRow(surf);
+                    size_t dstRowBytes = w * 4;
+                    if (bytesPerRow == dstRowBytes) {
+                        if (swapRb) {
+                            size_t numPixels = std::min(w * h, dstSize / 4);
+                            SwizzleBGRAtoRGBA(dst, (const uint8_t*)src, numPixels);
+                        } else {
+                            memcpy(dst, src, std::min(dstSize, allocSize));
+                        }
                     } else {
-                        memcpy(dst, src, std::min(dstSize, allocSize));
+                        const uint8_t* srcBytes = (const uint8_t*)src;
+                        uint8_t* dstBytes = dst;
+                        for (size_t y = 0; y < h; y++) {
+                            const uint8_t* srcRow = srcBytes + (y * bytesPerRow);
+                            uint8_t* dstRow = dstBytes + (y * dstRowBytes);
+                            if (swapRb) {
+                                SwizzleBGRAtoRGBA(dstRow, srcRow, w);
+                            } else {
+                                memcpy(dstRow, srcRow, std::min(dstRowBytes, bytesPerRow));
+                            }
+                        }
                     }
                 }
 
